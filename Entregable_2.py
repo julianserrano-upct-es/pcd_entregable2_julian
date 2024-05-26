@@ -23,8 +23,8 @@ class Sistema():
     _unicaInstancia = None
 
     def __init__(self, umbral, estrategia=None):
-        manejador_umbral = ManejadorUmbral(umbral)
-        self.manejador_ultimos30 = ManejadorUltimos30(manejador_umbral)
+        self.manejador_umbral = ManejadorUmbral(umbral)
+        self.manejador_ultimos30 = ManejadorUltimos30(self.manejador_umbral)
         self.manejador_estrategia = Estrategias(self.manejador_ultimos30, estrategia)
 
     @classmethod
@@ -76,11 +76,15 @@ class ManejadorUmbral(ManejadorCalculos):
     def calculo_estadistico(self, dato):
         if dato > self._umbral:
             print("Se ha superado el umbral")
+            valor = True
         else:
             print("No se ha superado el umbral")
+            valor = False
         
         if self.manejador is not None:
             self.manejador.calculo_estadistico(dato)
+
+        return valor
 
 class ManejadorUltimos30(ManejadorCalculos):
     """
@@ -127,7 +131,7 @@ class Estrategias(ManejadorCalculos):
 
     Atributos:
     manejador: Atributo que guarda el siguiente manejador en la cadena
-    _estrategia: Atributo que guarda la estrategia de calculo de las estadisticas
+    _estrategia: String que indica el tipo de estrategia a utilizar. Los posibles valores son 'media', 'desviacion' y 'cuartiles'
     _datos_pasados: Atributo que guarda los datos pasados
 
     Metodos:
@@ -157,7 +161,17 @@ class Estrategias(ManejadorCalculos):
                 self._desviacion.calculo_estadistico()
                 self._cuartiles.calculo_estadistico()
             else:
-                self._estrategia.calculo_estadistico()
+                if self._estrategia == 'media':
+                    self._media = EstrategiaMedia(self._datos_pasados)
+                    self._media.calculo_estadistico()
+                elif self._estrategia == 'desviacion':
+                    self._desviacion = EstrategiaDesviacion(self._datos_pasados)
+                    self._desviacion.calculo_estadistico()
+                elif self._estrategia == 'cuartiles':
+                    self._cuartiles = EstrategiaCuartiles(self._datos_pasados)
+                    self._cuartiles.calculo_estadistico()
+                else:
+                    print("Estrategia no valida")
 
 
         if self.manejador is not None:
@@ -175,12 +189,13 @@ class EstrategiaMedia(Estrategias):
     __init__: Constructor de la clase
     calculo_estadistico: Metodo que se encarga de calcular la media de los datos pasados
     """
-    def __init__(self, datos_pasados):
+    def __init__(self, datos_pasados=[]):
         super().__init__(datos = datos_pasados)
 
     def calculo_estadistico(self):
         media = reduce(lambda x, y: x + y, self._datos_pasados) / len(self._datos_pasados)
         print("La media de las temperaturas es: ", media)
+        return media
 
 class EstrategiaDesviacion(Estrategias):
     """
@@ -201,6 +216,7 @@ class EstrategiaDesviacion(Estrategias):
         media = reduce(lambda x, y: x + y, self._datos_pasados) / len(self._datos_pasados)
         desviacion_tipica = math.sqrt(reduce(lambda x, y: x + y, map(lambda x: (x - media) ** 2, self._datos_pasados)) / len(self._datos_pasados))
         print("La desviacion tipica de las temperaturas es: ", desviacion_tipica)
+        return desviacion_tipica
 
 class EstrategiaCuartiles(Estrategias):
     """
@@ -240,6 +256,7 @@ class EstrategiaCuartiles(Estrategias):
 
         print("El primer cuartil es: ", q1)
         print("El tercer cuartil es: ", q3)
+        return q1, q3
     
 if __name__ == "__main__":
     sistema = Sistema.obtemerInstance(30)
